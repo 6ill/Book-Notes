@@ -6,9 +6,11 @@ $(".delete-btn").on("click", function () {
     $("#modal-delete-btn").attr("formaction", "/delete/" + book_id);
 });
 
+// Modal for deleting note
+$(".delete-note-btn").on("click", function () {
+    const noteId = $(this).data("noteid");
+    $(".modal-msg").text(`Are you sure want to delete this note?`)
+    $("#modal-delete-note-btn").attr("formaction", "/delete-note/" + noteId);
+});
 
-const maxReviewLength = 80
-if ($(".review").text().length > maxReviewLength) {
-    const truncatedText = $(".review").text().substring(0, maxReviewLength) + '...';
-    $(".review").text(truncatedText);
-}
+

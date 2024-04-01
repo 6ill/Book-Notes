@@ -2,6 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
 import axios from "axios";
+import { render } from "ejs";
 
 const app = express();
 const port = 3000;
@@ -20,17 +21,25 @@ db.connect();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("./public/"));
 
-async function getAllUserBooks(){
-  const result = await db.query(
-    "SELECT * FROM user_books"
-  )
+async function getAllUserBooks(sorting){
+  let result;
+  if(sorting){    
+    result = await db.query(
+      `SELECT * FROM user_books ORDER BY ${sorting}`
+    )
+  } else {
+    result = await db.query(
+      "SELECT * FROM user_books"
+    )
+  }
 
   return result.rows
 }
 
 app.get("/",  async (req, res) => {
   try {
-    const allUserBooks = await getAllUserBooks()
+    const sortingParam = req.query.sort;
+    const allUserBooks = await getAllUserBooks(sortingParam)
     res.render("index.ejs", {allUserBooks:allUserBooks, totalBookNumber:allUserBooks.length})
   } catch (error) {
     console.error("Failed to make request:", error.message);
@@ -94,7 +103,7 @@ app.post("/add-note/:id", async (req, res) => {
       "INSERT INTO notes(book_id, date_created, note, page_num) VALUES($1, NOW(), $2, $3)",
       [bookId, note, pageNumber]
     );
-    res.redirect("/");
+    res.redirect("/details/" + bookId);
   } catch (error) {
     console.error("Error occured: ", error.message);
     res.render("index.ejs", {
@@ -111,7 +120,6 @@ app.get("/edit/:id", async (req,res) => {
       [id]
     )
     const bookData = result.rows[0]
-    console.log(bookData['date_read'].toISOString().slice(0,10))
     res.render("edit.ejs", {bookData: bookData})
   } catch (error) {
     console.error("Error occured: ", error.message);
@@ -142,6 +150,89 @@ app.post("/edit/:id", async (req,res) => {
   }
 })
 
+app.get("/details/:id", async (req,res) => {
+  const id = Number(req.params.id)
+  try {
+    const book = await db.query(
+      "SELECT * FROM user_books WHERE id=$1",
+      [id]
+    );
+    const notes = await db.query(
+      "SELECT * FROM notes WHERE book_id=$1",
+      [id]
+      )
+      console.log(notes.rows)
+
+    res.render("note_details.ejs", {book:book.rows[0], notes:notes.rows})
+  } catch (error) {
+    console.error("Error occured: ", error.message);
+    res.render("index.ejs", {
+        error: error.message,
+    });
+  }
+
+})
+
+app.get("/edit-note/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  try {
+    const result = await db.query(
+      "SELECT id, page_num, note FROM notes WHERE id=$1",
+      [id]
+    )
+    const noteData = result.rows[0]
+    res.render("edit_note.ejs", {noteData: noteData})
+  } catch (error) {
+    console.error("Error occured: ", error.message);
+    res.render("index.ejs", {
+        error: error.message,
+    });
+  }
+})
+
+app.post("/edit-note/:id", async (req, res) => {
+  const id = Number(req.params.id);
+  const pageNumber = Number(req.body.pageNumber);
+  const noteText = req.body.note;
+  console.log(pageNumber)
+  try {
+    await db.query(
+      "UPDATE notes SET page_num=$1, note=$2 WHERE id=$3",
+      [pageNumber, noteText, id]
+    )
+
+    const result_bookid = await db.query(
+      "SELECT book_id FROM notes WHERE id=$1",
+      [id]
+    )
+    const book_id = result_bookid.rows[0].book_id
+    res.redirect("/details/" + book_id  )
+  } catch (error) {
+    console.error("Error occured: ", error.message);
+    res.render("index.ejs", {
+        error: error.message,
+    });
+  }
+})
+
+app.post("/delete-note/:id", async (req,res) => {
+  const id = req.params.id
+  try {
+    const result_bookid = await db.query(
+      "SELECT book_id FROM notes WHERE id=$1",
+      [id]
+    )
+    await db.query("DELETE FROM notes WHERE id = $1", [id]);
+
+    const bookId = result_bookid.rows[0].book_id
+    res.redirect("/details/" + bookId)
+  } catch (error) {
+    console.error("Error occured: ", error.message);
+    res.render("index.ejs", {
+        error: error.message,
+    });
+  }
+})
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
