@@ -25,7 +25,7 @@ async function getAllUserBooks(sorting){
   let result;
   if(sorting){    
     result = await db.query(
-      `SELECT * FROM user_books ORDER BY ${sorting}`
+      `SELECT * FROM user_books ORDER BY ${sorting} DESC`
     )
   } else {
     result = await db.query(
@@ -161,7 +161,6 @@ app.get("/details/:id", async (req,res) => {
       "SELECT * FROM notes WHERE book_id=$1",
       [id]
       )
-      console.log(notes.rows)
 
     res.render("note_details.ejs", {book:book.rows[0], notes:notes.rows})
   } catch (error) {
@@ -194,7 +193,6 @@ app.post("/edit-note/:id", async (req, res) => {
   const id = Number(req.params.id);
   const pageNumber = Number(req.body.pageNumber);
   const noteText = req.body.note;
-  console.log(pageNumber)
   try {
     await db.query(
       "UPDATE notes SET page_num=$1, note=$2 WHERE id=$3",
