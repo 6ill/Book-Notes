@@ -2,19 +2,21 @@ import express from "express";
 import bodyParser from "body-parser";
 import pg from "pg";
 import axios from "axios";
+import env from "dotenv";
 import { render } from "ejs";
 
 const app = express();
 const port = 3000;
 const SEARCH_API_URL = "https://openlibrary.org/"  
 const COVER_API_URL = "https://covers.openlibrary.org/b/"
+env.config();
 
 const db = new pg.Client({
-  user: "postgres",
-  host: "localhost",
-  database: "book_notes",
-  password: "",
-  port: 5432,
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
 });
 db.connect();
 
