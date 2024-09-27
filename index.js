@@ -3,13 +3,12 @@ import bodyParser from "body-parser";
 import pg from "pg";
 import axios from "axios";
 import env from "dotenv";
-import { render } from "ejs";
 
 const app = express();
 const port = 3000;
 const SEARCH_API_URL = "https://openlibrary.org/"  
 const COVER_API_URL = "https://covers.openlibrary.org/b/"
-env.config();
+env.config(); 
 
 const db = new pg.Client({
   user: process.env.PG_USER,
